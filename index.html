@@ -1,9 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-g" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Satirical News Tweet Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,29 +14,19 @@
         theme: {
           extend: {
             colors: {
-              'brand-primary': '#1D9BF0',
-              'brand-secondary': '#1DA1F2',
-              'gray-dark': '#15202B',
-              'gray-medium': '#192734',
-              'gray-light': '#22303C',
-              'text-primary': '#E7E9EA',
-              'text-secondary': '#8899A6',
-            }
-          }
-        }
-      }
+              "brand-primary": "#1D9BF0",
+              "brand-secondary": "#1DA1F2",
+              "gray-dark": "#15202B",
+              "gray-medium": "#192734",
+              "gray-light": "#22303C",
+              "text-primary": "#E7E9EA",
+              "text-secondary": "#8899A6",
+            },
+          },
+        },
+      };
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-gray-dark text-text-primary">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
