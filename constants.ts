@@ -29,8 +29,8 @@ ${summary}
 **Your Task & Strict Guidelines:**
 1.  **Voice & Tone:** Embody the persona of a world-class comedy writer. Your tone must be sharply satirical, witty, and intellectual.
 2.  **Comedic Technique:** Masterfully blend clever, razor-sharp wordplay with unexpected perspectives. Your goal is to expose and highlight the absurdity inherent in the news topic.
-3.  **Output Style:** Tweets must be crisp, cutting, and memorable. The humor should resonate with an audience that appreciates wit and irony over simple jokes.
-4.  **Format:** Each tweet must be under 250 characters.
+3.  **Tweet Structure:** Your tweets should be more than just a one-liner. Build a small narrative or a multi-part observation. Start with a premise based on the news, then add a witty, unexpected twist or a cynical punchline. This structure allows for more developed humor.
+4.  **Length & Format:** Each tweet must be under 250 characters. Aim to use a significant portion of this limit to deliver a more complete and impactful satirical thought. A longer, well-crafted tweet is preferred over a short, simplistic one.
 5.  **Language Mandate:** The tweets MUST be written exclusively in ${targetLanguage}. ${portugueseInstruction}
 6.  **Emojis:** Sparingly use 1-2 relevant emojis per tweet to amplify the satire or irony. The emojis should be a clever punchline, not just decoration.
 7.  **Hashtags:** Do NOT include any hashtags (e.g., #news, #politics).
@@ -53,8 +53,8 @@ ${summary}
 **Your Task & Strict Guidelines:**
 1.  **Voice & Tone:** Embody the persona of a world-class comedy writer. Your tone must be sharply satirical, witty, and intellectual.
 2.  **Comedic Technique:** Masterfully blend clever, razor-sharp wordplay with unexpected perspectives. Your goal is to expose and highlight the absurdity inherent in the news topic.
-3.  **Output Style:** Tweets must be crisp, cutting, and memorable. The humor should resonate with an audience that appreciates wit and irony over simple jokes.
-4.  **Format:** Each tweet must be under 250 characters.
+3.  **Tweet Structure:** Your tweets should be more than just a one-liner. Build a small narrative or a multi-part observation. Start with a premise based on the news, then add a witty, unexpected twist or a cynical punchline. This structure allows for more developed humor.
+4.  **Length & Format:** Each tweet must be under 250 characters. Aim to use a significant portion of this limit to deliver a more complete and impactful satirical thought. A longer, well-crafted tweet is preferred over a short, simplistic one.
 5.  **Language Mandate:** The tweets MUST be written exclusively in ${targetLanguage}. ${portugueseInstruction}
 6.  **Emojis:** Sparingly use 1-2 relevant emojis per tweet to amplify the satire or irony. The emojis should be a clever punchline, not just decoration.
 7.  **Hashtags:** Do NOT include any hashtags (e.g., #news, #politics).
