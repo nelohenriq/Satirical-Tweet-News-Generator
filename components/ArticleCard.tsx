@@ -6,11 +6,11 @@ import { LinkIcon } from './icons';
 
 interface ArticleCardProps {
   article: ProcessedArticle;
-  onGenerateImage: (articleId: string, tweetIndex: number) => void;
+  // onGenerateImage: (articleId: string, tweetIndex: number) => void;
   aiProvider: AIProvider;
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onGenerateImage, aiProvider }) => {
+export const ArticleCard: React.FC<ArticleCardProps> = ({ article, /* onGenerateImage, */ aiProvider }) => {
   return (
     <article className="bg-light-surface dark:bg-gray-medium rounded-lg shadow-lg p-6 border border-light-border dark:border-gray-light transition-all duration-300 ease-in-out hover:border-brand-primary hover:shadow-2xl hover:-translate-y-1">
       <header className="mb-4">
@@ -41,7 +41,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onGenerateIma
               key={index} 
               tweet={tweet} 
               aiProvider={aiProvider}
-              onGenerateImage={() => onGenerateImage(article.id, index)}
+              // onGenerateImage={() => onGenerateImage(article.id, index)}
             />
           ))}
         </div>

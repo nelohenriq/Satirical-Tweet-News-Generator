@@ -1,4 +1,3 @@
-
 import { TWEET_SYSTEM_PROMPT, getTweetGenerationPromptForGroq } from '../constants';
 
 const OLLAMA_API_URL = 'http://localhost:11434/api';
@@ -6,6 +5,8 @@ const OLLAMA_API_URL = 'http://localhost:11434/api';
 // --- Text Generation ---
 
 const ollamaChatCompletion = async (model: string, messages: any[], useJson: boolean = false): Promise<string> => {
+    // Note: The Ollama API does not have a "thinkingBudget" or equivalent parameter like some cloud-based APIs.
+    // Requests are sent directly to the model for processing, so there is no pre-processing step to disable.
     const body: any = {
         model,
         messages,
@@ -66,6 +67,7 @@ export const generateTweetsWithOllama = async (summary: string, model: string): 
 };
 
 
+/*
 // --- Image Generation ---
 
 export const generateImageWithOllama = async (prompt: string, model: string): Promise<string> => {
@@ -115,3 +117,4 @@ export const generateImageWithOllama = async (prompt: string, model: string): Pr
         throw new Error('An unknown error occurred during Ollama image generation.');
     }
 };
+*/

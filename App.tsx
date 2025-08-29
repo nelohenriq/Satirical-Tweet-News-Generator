@@ -9,7 +9,7 @@ import { ProcessedArticle, AIProvider, GroqModelId, TweetData } from './types';
 import { fetchAndParseFeed } from './services/rssService';
 import { search as serperSearch } from './services/serperService';
 import { summarizeContent, generateTweets } from './services/geminiService';
-import { generateImageWithOllama } from './services/ollamaService';
+// import { generateImageWithOllama } from './services/ollamaService';
 import { getProcessedLinks, addProcessedLink, clearProcessedLinks } from './services/storageService';
 import { GROQ_MODELS, FUNNY_LOADING_MESSAGES } from './constants';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -111,6 +111,7 @@ const App: React.FC = () => {
     alert('Processing history has been cleared.');
   }, []);
 
+  /*
   const handleGenerateImage = useCallback(async (articleId: string, tweetIndex: number) => {
     if (aiProvider !== 'ollama') return;
 
@@ -149,6 +150,7 @@ const App: React.FC = () => {
         }));
     }
   }, [aiProvider, ollamaModel, processedArticles]);
+  */
 
   const handleProcessFeed = useCallback(async (urls: string[]) => {
     if (!serperApiKey) {
@@ -290,7 +292,7 @@ const App: React.FC = () => {
           {processedArticles.length > 0 && (
             <ResultsDisplay 
               articles={processedArticles} 
-              onGenerateImage={handleGenerateImage}
+              // onGenerateImage={handleGenerateImage}
               aiProvider={aiProvider}
             />
           )}

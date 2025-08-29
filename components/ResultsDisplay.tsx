@@ -7,11 +7,11 @@ import { Tooltip } from './Tooltip';
 
 interface ResultsDisplayProps {
   articles: ProcessedArticle[];
-  onGenerateImage: (articleId: string, tweetIndex: number) => void;
+  // onGenerateImage: (articleId: string, tweetIndex: number) => void;
   aiProvider: AIProvider;
 }
 
-export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ articles, onGenerateImage, aiProvider }) => {
+export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ articles, /* onGenerateImage, */ aiProvider }) => {
 
   const handleDownload = () => {
     const header = `# Satirical News Tweet Generation Results\n\nGenerated on: ${new Date().toUTCString()}\n\n---\n\n`;
@@ -55,7 +55,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ articles, onGene
           <ArticleCard 
             key={article.id} 
             article={article} 
-            onGenerateImage={onGenerateImage}
+            // onGenerateImage={onGenerateImage}
             aiProvider={aiProvider}
           />
         ))}

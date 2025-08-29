@@ -12,9 +12,9 @@ export interface RSSItem {
 
 export interface TweetData {
   text: string;
-  imageUrl?: string | null;
-  isGeneratingImage?: boolean;
-  imageError?: string | null;
+  // imageUrl?: string | null;
+  // isGeneratingImage?: boolean;
+  // imageError?: string | null;
 }
 
 export interface ProcessedArticle {

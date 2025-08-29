@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
-import { XIcon, CopyIcon, CheckIcon, PhotoIcon } from './icons';
+import { XIcon, CopyIcon, CheckIcon } from './icons'; //, PhotoIcon } from './icons';
 import { TweetData, AIProvider } from '../types';
 import { Spinner } from './Spinner';
 
 interface TweetProps {
   tweet: TweetData;
   aiProvider: AIProvider;
-  onGenerateImage: () => void;
+  // onGenerateImage: () => void;
 }
 
-export const Tweet: React.FC<TweetProps> = ({ tweet, aiProvider, onGenerateImage }) => {
+export const Tweet: React.FC<TweetProps> = ({ tweet, aiProvider, /* onGenerateImage */ }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -40,6 +40,7 @@ export const Tweet: React.FC<TweetProps> = ({ tweet, aiProvider, onGenerateImage
         </button>
       </div>
 
+      {/*
       <div className="mt-3 pt-3 border-t border-light-border dark:border-gray-500/50">
         {aiProvider === 'ollama' && !tweet.imageUrl && !tweet.isGeneratingImage && !tweet.imageError && (
           <button 
@@ -75,6 +76,7 @@ export const Tweet: React.FC<TweetProps> = ({ tweet, aiProvider, onGenerateImage
           </div>
         )}
       </div>
+      */}
     </div>
   );
 };
