@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { FeedForm } from './components/FeedForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import { Spinner } from './components/Spinner';
@@ -9,6 +10,7 @@ import { fetchAndParseFeed } from './services/rssService';
 import { scrapeUrlContent } from './services/scraperService';
 import { search as serperSearch } from './services/serperService';
 import { summarizeContent, generateTweets } from './services/geminiService';
+// import { generateImageWithOllama } from './services/ollamaService';
 import { getProcessedLinks, addProcessedLink, clearProcessedLinks } from './services/storageService';
 import { GROQ_MODELS, FUNNY_LOADING_MESSAGES } from './constants';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -68,13 +70,29 @@ const App: React.FC = () => {
   
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
+
+    // Gracefully fallback for browsers that don't support the View Transitions API.
+    // @ts-ignore
+    if (!document.startViewTransition) {
+      setTheme(newTheme);
+      return;
+    }
+
+    // Use the View Transitions API for a smooth cross-fade effect.
+    // @ts-ignore
+    document.startViewTransition(() => {
+      // Force React to synchronously update the DOM. This is crucial for
+      // the View Transition API to correctly capture the "after" state.
+      flushSync(() => {
+        setTheme(newTheme);
+      });
+    });
   };
 
   useEffect(() => {
     try {
       sessionStorage.setItem(SERPER_API_KEY_SESSION_KEY, serperApiKey);
-    } catch (error) {
+    } catch (error)      {
       console.error('Failed to save Serper API key to sessionStorage:', error);
     }
   }, [serperApiKey]);
@@ -82,10 +100,11 @@ const App: React.FC = () => {
   useEffect(() => {
     try {
       sessionStorage.setItem(GROQ_API_KEY_SESSION_KEY, groqApiKey);
-    } catch (error) {
+    } catch (error)      {
       console.error('Failed to save Groq API key to sessionStorage:', error);
     }
   }, [groqApiKey]);
+
 
   const handleClearHistory = useCallback(() => {
     clearProcessedLinks();
@@ -268,21 +287,21 @@ const App: React.FC = () => {
   }, [serperApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays, validateApiKeys]);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen">
       <div className="container mx-auto p-4 md:p-8 max-w-5xl">
         <header className="flex items-center justify-between space-x-4 mb-10">
           <div className="flex items-center space-x-4">
-            <LogoIcon className="h-14 w-14 text-blue-500" />
+            <LogoIcon className="h-14 w-14 text-brand-primary" />
             <div>
-              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-500 tracking-tight">Satirical News Tweet Generator</h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg mt-1">Turning today's headlines into tomorrow's punchlines.</p>
+              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-brand-primary tracking-tight">Satirical News Tweet Generator</h1>
+              <p className="text-light-text-secondary dark:text-text-secondary text-lg mt-1">Turning today's headlines into tomorrow's punchlines.</p>
             </div>
           </div>
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
         </header>
 
         <main>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg mb-8 border border-gray-200 dark:border-gray-600">
+          <div className="bg-light-surface dark:bg-gray-medium/30 rounded-lg p-6 shadow-lg mb-8 border border-light-border dark:border-gray-light">
             <FeedForm 
               onProcessFeed={handleProcessFeed} 
               onProcessUrl={handleProcessUrl}
@@ -306,12 +325,12 @@ const App: React.FC = () => {
           {isLoading && (
             <div className="flex flex-col items-center justify-center text-center p-8">
               <Spinner />
-              <p className="mt-4 text-lg font-semibold text-blue-600 dark:text-blue-400">{loadingMessage}</p>
+              <p className="mt-4 text-lg font-semibold text-brand-secondary">{loadingMessage}</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-100 border border-red-300 text-red-700 dark:bg-red-900 dark:border-red-600 dark:text-red-300 px-4 py-3 rounded-lg relative" role="alert">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative" role="alert">
               <strong className="font-bold">Error: </strong>
               <span className="block sm:inline">{error}</span>
             </div>
@@ -320,19 +339,20 @@ const App: React.FC = () => {
           {processedArticles.length > 0 && (
             <ResultsDisplay 
               articles={processedArticles} 
+              // onGenerateImage={handleGenerateImage}
               aiProvider={aiProvider}
             />
           )}
 
           {!isLoading && !error && processedArticles.length === 0 && (
-            <div className="text-center py-16 px-6 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
+            <div className="text-center py-16 px-6 bg-light-surface dark:bg-gray-medium/50 rounded-lg border-2 border-dashed border-light-border dark:border-gray-light">
                 <div className="text-6xl mb-4" aria-hidden="true">🗞️</div>
                 <h3 className="text-xl font-bold text-light-text-primary dark:text-text-primary">The Anvil of Absurdity Awaits</h3>
                 <p className="text-light-text-secondary dark:text-text-secondary">Feed me an RSS link or a single URL and I shall forge comedic gold.</p>
             </div>
           )}
         </main>
-         <footer className="text-center mt-12 text-gray-600 dark:text-gray-300 text-sm">
+         <footer className="text-center mt-12 text-light-text-secondary dark:text-text-secondary text-sm">
             <p>Crafted with 🤖 and a hint of existential dread. All content is AI-generated.</p>
         </footer>
       </div>
