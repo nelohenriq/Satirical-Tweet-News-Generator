@@ -7,7 +7,7 @@ import { LogoIcon } from './components/icons';
 import { ProcessedArticle, AIProvider, GroqModelId } from './types';
 import { fetchAndParseFeed } from './services/rssService';
 import { search as tavilySearch } from './services/tavilyService';
-import { summarizeContent, generateTweets, detectLanguage } from './services/geminiService';
+import { summarizeContent, generateTweets } from './services/geminiService';
 import { getProcessedLinks, addProcessedLink, clearProcessedLinks } from './services/storageService';
 import { GROQ_MODELS } from './constants';
 
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [aiProvider, setAiProvider] = useState<AIProvider>('gemini');
   const [groqModel, setGroqModel] = useState<GroqModelId>(GROQ_MODELS[0].id);
+  const [ollamaModel, setOllamaModel] = useState<string>('llama3'); // Default local model
   
   // Initialize state from sessionStorage and keep it in sync.
   const [tavilyApiKey, setTavilyApiKey] = useState<string>(() => {
@@ -75,6 +76,10 @@ const App: React.FC = () => {
       setError('Groq API Key is required when using the Groq provider.');
       return;
     }
+    if (aiProvider === 'ollama' && !ollamaModel) {
+      setError('Ollama model name is required when using the Ollama provider.');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -82,62 +87,54 @@ const App: React.FC = () => {
 
     try {
       const existingLinks = getProcessedLinks();
-      const apiKeys = { groqApiKey, groqModel };
+      const apiConfig = { groqApiKey, groqModel, ollamaModel };
 
-      for (const [urlIndex, url] of urls.entries()) {
-        const feedProgress = `(Feed ${urlIndex + 1}/${urls.length})`;
+      setLoadingMessage(`Step 1/4: Fetching and parsing ${urls.length} RSS feed(s)...`);
+      // Fetch all feeds in parallel for efficiency.
+      const feedResults = await Promise.all(
+        urls.map(url => fetchAndParseFeed(url).catch(e => {
+            console.error(`Failed to fetch or parse feed ${url}:`, e);
+            // Return an empty array for a failed feed so Promise.all doesn't reject the whole batch.
+            return []; 
+        }))
+      );
+      
+      const allItems = feedResults.flat();
+      const articlesToProcess = allItems.filter(item => item.link && !existingLinks.has(item.link));
 
-        setLoadingMessage(`Step 1/5: Fetching and parsing RSS feed ${feedProgress}...`);
-        const feedItems = await fetchAndParseFeed(url);
+      if (articlesToProcess.length === 0) {
+        setError("No new articles found in the provided feed(s). Clear history to re-process existing articles.");
+        setIsLoading(false);
+        return;
+      }
+      
+      for (let i = 0; i < articlesToProcess.length; i++) {
+        const item = articlesToProcess[i];
+        const articleProgress = `${i + 1}/${articlesToProcess.length}`;
         
-        const articlesToProcess = feedItems.filter(item => item.link && !existingLinks.has(item.link));
+        setLoadingMessage(`Step 2/4: Searching with Tavily (Article ${articleProgress})...`);
+        const extraContext = await tavilySearch(item.title, tavilyApiKey);
+        const fullContent = `${item.title}\n\n${item.content}\n\nAdditional Context from Tavily:\n${extraContext}`;
 
-        if (articlesToProcess.length === 0) {
-          console.warn(`No new items to process in feed: ${url}`);
-          continue; // Skip to the next feed
-        }
+        setLoadingMessage(`Step 3/4: Summarizing (Article ${articleProgress})...`);
+        const summary = await summarizeContent(fullContent, aiProvider, apiConfig);
         
-        for (let i = 0; i < articlesToProcess.length; i++) {
-          const item = articlesToProcess[i];
-          const articleProgress = `${i + 1}/${articlesToProcess.length}`;
-          
-          setLoadingMessage(`Step 2/5: Detecting language ${feedProgress}, Article ${articleProgress}...`);
-          const language = await detectLanguage(item.content, aiProvider, apiKeys);
-          
-          if (aiProvider === 'groq') {
-            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-          }
+        setLoadingMessage(`Step 4/4: Crafting tweets (Article ${articleProgress})...`);
+        const tweets = await generateTweets(summary, aiProvider, apiConfig);
 
-          setLoadingMessage(`Step 3/5: Searching with Tavily ${feedProgress}, Article ${articleProgress}...`);
-          const extraContext = await tavilySearch(item.title, tavilyApiKey);
-          const fullContent = `${item.title}\n\n${item.content}\n\nAdditional Context from Tavily:\n${extraContext}`;
-
-          setLoadingMessage(`Step 4/5: Summarizing ${feedProgress}, Article ${articleProgress}...`);
-          const summary = await summarizeContent(fullContent, language, aiProvider, apiKeys);
-          
-          if (aiProvider === 'groq') {
-            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-          }
-
-          setLoadingMessage(`Step 5/5: Crafting tweets ${feedProgress}, Article ${articleProgress}...`);
-          const tweets = await generateTweets(summary, language, aiProvider, apiKeys);
-
-          const newArticle: ProcessedArticle = {
-            id: item.link || `${item.title}-${Date.now()}-${i}`,
-            title: item.title,
-            link: item.link,
-            summary,
-            tweets,
-          };
-          
-          // Stream result to the UI in real-time
-          setProcessedArticles(prevArticles => [...prevArticles, newArticle]);
-          // Add link to history to prevent re-processing
-          if (item.link) {
-            addProcessedLink(item.link);
-          }
+        const newArticle: ProcessedArticle = {
+          id: item.link || `${item.title}-${Date.now()}-${i}`,
+          title: item.title,
+          link: item.link,
+          summary,
+          tweets,
+        };
+        
+        // Stream result to the UI in real-time
+        setProcessedArticles(prevArticles => [...prevArticles, newArticle]);
+        // Add link to history to prevent re-processing
+        if (item.link) {
+          addProcessedLink(item.link);
         }
       }
 
@@ -148,7 +145,7 @@ const App: React.FC = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [tavilyApiKey, aiProvider, groqApiKey, groqModel]);
+  }, [tavilyApiKey, aiProvider, groqApiKey, groqModel, ollamaModel]);
 
   return (
     <div className="min-h-screen bg-gray-dark font-sans">
@@ -175,6 +172,8 @@ const App: React.FC = () => {
               setGroqApiKey={setGroqApiKey}
               groqModel={groqModel}
               setGroqModel={setGroqModel}
+              ollamaModel={ollamaModel}
+              setOllamaModel={setOllamaModel}
             />
           </div>
 

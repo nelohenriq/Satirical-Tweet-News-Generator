@@ -15,6 +15,8 @@ interface FeedFormProps {
   setGroqApiKey: (key: string) => void;
   groqModel: GroqModelId;
   setGroqModel: (model: GroqModelId) => void;
+  ollamaModel: string;
+  setOllamaModel: (model: string) => void;
 }
 
 export const FeedForm: React.FC<FeedFormProps> = ({ 
@@ -28,7 +30,9 @@ export const FeedForm: React.FC<FeedFormProps> = ({
   groqApiKey,
   setGroqApiKey,
   groqModel,
-  setGroqModel
+  setGroqModel,
+  ollamaModel,
+  setOllamaModel
 }) => {
   const [urls, setUrls] = useState('');
 
@@ -62,6 +66,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({
             >
               <option value="gemini">Google Gemini</option>
               <option value="groq">Groq</option>
+              <option value="ollama">Ollama (Local)</option>
             </select>
           </div>
 
@@ -111,6 +116,24 @@ export const FeedForm: React.FC<FeedFormProps> = ({
                 value={groqApiKey}
                 onChange={(e) => setGroqApiKey(e.target.value)}
                 placeholder="Enter your Groq API Key"
+                required
+                className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {aiProvider === 'ollama' && (
+             <div>
+              <label htmlFor="ollama-model" className="block text-sm font-medium text-text-secondary mb-2">
+                Ollama Model Name
+              </label>
+              <input
+                id="ollama-model"
+                type="text"
+                value={ollamaModel}
+                onChange={(e) => setOllamaModel(e.target.value)}
+                placeholder="e.g., llama3, gemma"
                 required
                 className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
                 disabled={isLoading}

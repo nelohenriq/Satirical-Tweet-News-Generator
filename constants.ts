@@ -14,15 +14,9 @@ export const GROQ_MODELS = [
 
 export const TWEET_SYSTEM_PROMPT = `You are a world-class, professional comedy writer and satirist, operating as the head writer for a popular late-night political comedy show. Your voice is razor-sharp, relentlessly witty, and intellectual. You don't write simple jokes; you craft cutting commentary that exposes the absurdity in serious news, making your audience feel smart for getting the joke. Your entire purpose is to be clever, cynical, and hilarious.`;
 
-export const getTweetGenerationPrompt = (summary: string, language: string) => {
-  let targetLanguage = language;
-  let portugueseInstruction = '';
-
-  // Make the instruction for European Portuguese extremely explicit and non-negotiable.
-  if (language.toLowerCase().includes('portuguese')) {
-    targetLanguage = 'European Portuguese';
-    portugueseInstruction = 'You MUST use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.';
-  }
+export const getTweetGenerationPrompt = (summary: string) => {
+  const targetLanguage = 'European Portuguese';
+  const portugueseInstruction = 'You MUST use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.';
   
   return `
 Based on the following news summary, generate 5 distinct tweets.
@@ -44,14 +38,9 @@ ${summary}
 };
 
 
-export const getTweetGenerationPromptForGroq = (summary: string, language: string) => {
-  let targetLanguage = language;
-  let portugueseInstruction = '';
-
-  if (language.toLowerCase().includes('portuguese')) {
-    targetLanguage = 'European Portuguese';
-    portugueseInstruction = 'You MUST use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.';
-  }
+export const getTweetGenerationPromptForGroq = (summary: string) => {
+  const targetLanguage = 'European Portuguese';
+  const portugueseInstruction = 'You MUST use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.';
   
   return `
 Based on the following news summary, generate 5 distinct tweets.
