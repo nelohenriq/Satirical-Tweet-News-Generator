@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { TWEET_SYSTEM_PROMPT, getTweetGenerationPrompt, getTweetGenerationPromptForGroq } from '../constants';
 import { AIProvider, GroqModelId } from "../types";
@@ -9,76 +10,6 @@ if (!process.env.API_KEY) {
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const geminiTextModel = 'gemini-2.5-flash';
 
-
-// --- Groq Rate Limiting ---
-const GROQ_RPM_LIMIT = 30; // Requests per minute
-const GROQ_TPM_LIMIT = 8000; // Tokens per minute
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 60 seconds
-
-// This will store timestamps and token counts of recent Groq requests.
-const groqRequestLog: { timestamp: number; tokens: number }[] = [];
-
-/**
- * A simple heuristic to estimate the number of tokens in a string.
- * Based on the observation that one token is roughly 4 characters for English text.
- * @param text The input string.
- * @returns An estimated token count.
- */
-const estimateTokens = (text: string): number => {
-    return Math.ceil(text.length / 4);
-};
-
-/**
- * Checks current Groq API usage against RPM and TPM limits and waits if necessary.
- * This function is stateful and relies on the shared `groqRequestLog`.
- * @param estimatedInputTokens Estimated tokens for the upcoming request's input.
- * @param expectedOutputTokens Estimated tokens for the upcoming request's output.
- */
-const handleGroqRateLimiting = async (estimatedInputTokens: number, expectedOutputTokens: number): Promise<void> => {
-    const totalTokensForRequest = estimatedInputTokens + expectedOutputTokens;
-
-    // This function will run in a loop until we are clear to make the request.
-    while (true) {
-        const now = Date.now();
-        
-        // 1. Clean up old requests from the log.
-        while (groqRequestLog.length > 0 && now - groqRequestLog[0].timestamp > RATE_LIMIT_WINDOW_MS) {
-            groqRequestLog.shift(); // Remove the oldest request if it's outside the window
-        }
-
-        // 2. Calculate current usage in the window.
-        const currentRPM = groqRequestLog.length;
-        const currentTPM = groqRequestLog.reduce((sum, req) => sum + req.tokens, 0);
-
-        // 3. Check if we would exceed limits with the new request.
-        const wouldExceedRPM = currentRPM + 1 > GROQ_RPM_LIMIT;
-        const wouldExceedTPM = currentTPM + totalTokensForRequest > GROQ_TPM_LIMIT;
-
-        if (!wouldExceedRPM && !wouldExceedTPM) {
-            // We are within limits, break the loop and proceed.
-            break;
-        }
-        
-        // 4. If we are rate-limited, calculate the necessary wait time.
-        const oldestRequest = groqRequestLog[0];
-        if (oldestRequest) {
-            // Wait until the oldest request in our log expires, plus a small buffer.
-            const timeToWait = (oldestRequest.timestamp + RATE_LIMIT_WINDOW_MS) - now + 50;
-            console.log(`Groq rate limit hit. Waiting for ${timeToWait}ms...`);
-            await new Promise(resolve => setTimeout(resolve, timeToWait));
-        } else {
-            // This case should not be hit if limits > 0, but as a safeguard:
-            // If the log is empty but we'd still exceed, it means a single request is too large.
-            if (totalTokensForRequest > GROQ_TPM_LIMIT) {
-                 throw new Error(`Request is too large for Groq's token limit. Estimated tokens: ${totalTokensForRequest}, Limit: ${GROQ_TPM_LIMIT}`);
-            }
-            break; // Should not happen, but break to avoid an infinite loop.
-        }
-    }
-
-    // After waiting (or if no wait was needed), log the upcoming request and proceed.
-    groqRequestLog.push({ timestamp: Date.now(), tokens: totalTokensForRequest });
-};
 
 // --- Groq Setup ---
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -132,13 +63,7 @@ const generateTweetsWithGemini = async (summary: string): Promise<string[]> => {
 
 
 // --- Groq Implementations ---
-const groqChatCompletion = async (apiKey: string, messages: any[], model: GroqModelId, useJson: boolean = false, expectedOutputTokens: number = 500): Promise<string> => {
-    const promptContent = messages.map(m => m.content).join('\n');
-    const estimatedRequestTokens = estimateTokens(promptContent);
-
-    // Await the intelligent rate limiter before making the call.
-    await handleGroqRateLimiting(estimatedRequestTokens, expectedOutputTokens);
-
+const groqChatCompletion = async (apiKey: string, messages: any[], model: GroqModelId, useJson: boolean = false): Promise<string> => {
     const body: any = {
         messages,
         model: model,
@@ -164,28 +89,29 @@ const groqChatCompletion = async (apiKey: string, messages: any[], model: GroqMo
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const content = data.choices[0].message.content;
+
+    // Wait for 5 seconds after every Groq API call to respect rate limits.
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    return content;
 };
 
 const summarizeContentWithGroq = async (content: string, apiKey: string, model: GroqModelId): Promise<string> => {
-    // We request under 600 chars, which is ~150 tokens. Add a buffer.
-    const expectedOutputTokens = 250;
     const languageInstruction = 'The summary MUST be written in European Portuguese. Use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.'
     const prompt = `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`;
     const messages = [{ role: "user", content: prompt }];
-    return await groqChatCompletion(apiKey, messages, model, false, expectedOutputTokens);
+    return await groqChatCompletion(apiKey, messages, model, false);
 };
 
 const generateTweetsWithGroq = async (summary: string, apiKey: string, model: GroqModelId): Promise<string[]> => {
-    // 5 tweets * 250 chars = 1250 chars, which is ~315 tokens. Add a buffer.
-    const expectedOutputTokens = 500; 
     const prompt = getTweetGenerationPromptForGroq(summary);
     const messages = [
         { role: "system", content: TWEET_SYSTEM_PROMPT },
         { role: "user", content: prompt }
     ];
     
-    const jsonString = await groqChatCompletion(apiKey, messages, model, true, expectedOutputTokens);
+    const jsonString = await groqChatCompletion(apiKey, messages, model, true);
     const result = JSON.parse(jsonString);
 
     if (result.tweets && Array.isArray(result.tweets)) {
