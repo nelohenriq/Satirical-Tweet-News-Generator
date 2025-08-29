@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { EXAMPLE_FEEDS } from '../constants';
+import { EXAMPLE_FEEDS, GROQ_MODELS } from '../constants';
+import { AIProvider, GroqModelId } from '../types';
 
 interface FeedFormProps {
   onProcessFeed: (urls: string[]) => void;
@@ -8,9 +9,27 @@ interface FeedFormProps {
   tavilyApiKey: string;
   setTavilyApiKey: (key: string) => void;
   onClearHistory: () => void;
+  aiProvider: AIProvider;
+  setAiProvider: (provider: AIProvider) => void;
+  groqApiKey: string;
+  setGroqApiKey: (key: string) => void;
+  groqModel: GroqModelId;
+  setGroqModel: (model: GroqModelId) => void;
 }
 
-export const FeedForm: React.FC<FeedFormProps> = ({ onProcessFeed, isLoading, tavilyApiKey, setTavilyApiKey, onClearHistory }) => {
+export const FeedForm: React.FC<FeedFormProps> = ({ 
+  onProcessFeed, 
+  isLoading, 
+  tavilyApiKey, 
+  setTavilyApiKey, 
+  onClearHistory,
+  aiProvider,
+  setAiProvider,
+  groqApiKey,
+  setGroqApiKey,
+  groqModel,
+  setGroqModel
+}) => {
   const [urls, setUrls] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,23 +46,79 @@ export const FeedForm: React.FC<FeedFormProps> = ({ onProcessFeed, isLoading, ta
   };
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="tavily-api-key" className="block text-sm font-medium text-text-secondary mb-2">
-            Tavily API Key
-          </label>
-          <input
-            id="tavily-api-key"
-            type="password"
-            value={tavilyApiKey}
-            onChange={(e) => setTavilyApiKey(e.target.value)}
-            placeholder="Enter your Tavily API Key"
-            required
-            className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
-            disabled={isLoading}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="ai-provider" className="block text-sm font-medium text-text-secondary mb-2">
+              AI Provider
+            </label>
+            <select
+              id="ai-provider"
+              value={aiProvider}
+              onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+              className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+              disabled={isLoading}
+            >
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq</option>
+            </select>
+          </div>
+
+          {aiProvider === 'groq' && (
+            <div>
+              <label htmlFor="groq-model" className="block text-sm font-medium text-text-secondary mb-2">
+                Groq Model
+              </label>
+              <select
+                id="groq-model"
+                value={groqModel}
+                onChange={(e) => setGroqModel(e.target.value as GroqModelId)}
+                className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                disabled={isLoading}
+              >
+                {GROQ_MODELS.map(model => (
+                  <option key={model.id} value={model.id}>{model.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="tavily-api-key" className="block text-sm font-medium text-text-secondary mb-2">
+              Tavily API Key
+            </label>
+            <input
+              id="tavily-api-key"
+              type="password"
+              value={tavilyApiKey}
+              onChange={(e) => setTavilyApiKey(e.target.value)}
+              placeholder="Enter your Tavily API Key"
+              required
+              className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+              disabled={isLoading}
+            />
+          </div>
+
+          {aiProvider === 'groq' && (
+             <div>
+              <label htmlFor="groq-api-key" className="block text-sm font-medium text-text-secondary mb-2">
+                Groq API Key
+              </label>
+              <input
+                id="groq-api-key"
+                type="password"
+                value={groqApiKey}
+                onChange={(e) => setGroqApiKey(e.target.value)}
+                placeholder="Enter your Groq API Key"
+                required
+                className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                disabled={isLoading}
+              />
+            </div>
+          )}
         </div>
+
         <div>
            <label htmlFor="rss-urls" className="block text-sm font-medium text-text-secondary mb-2">
             Enter RSS Feed URLs (one per line)
@@ -59,7 +134,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ onProcessFeed, isLoading, ta
             disabled={isLoading}
           />
         </div>
-         <div className="flex items-center justify-between">
+         <div className="flex items-center justify-between pt-2">
             <button
                 type="button"
                 onClick={onClearHistory}
