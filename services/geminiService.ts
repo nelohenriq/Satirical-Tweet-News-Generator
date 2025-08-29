@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TWEET_SYSTEM_PROMPT, getTweetGenerationPrompt, getTweetGenerationPromptForGroq } from '../constants';
 import { AIProvider, GroqModelId } from "../types";
+import { summarizeContentWithOllama, generateTweetsWithOllama } from "./ollamaService";
 
 // --- Gemini Setup ---
 if (!process.env.API_KEY) {
@@ -14,9 +15,6 @@ const geminiTextModel = 'gemini-2.5-flash';
 // --- Groq Setup ---
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-// --- Ollama Setup ---
-const OLLAMA_API_URL = 'http://localhost:11434/api/chat';
-
 
 // --- Gemini Implementations ---
 const summarizeContentWithGemini = async (content: string): Promise<string> => {
@@ -25,6 +23,10 @@ const summarizeContentWithGemini = async (content: string): Promise<string> => {
   const response = await ai.models.generateContent({
     model: geminiTextModel,
     contents: `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`,
+    config: {
+      // Disable thinking for faster, cleaner summaries.
+      thinkingConfig: { thinkingBudget: 0 }
+    }
   });
   return response.text;
 };
@@ -49,6 +51,9 @@ const generateTweetsWithGemini = async (summary: string): Promise<string[]> => {
               },
               required: ["tweets"]
           },
+          // FIX: Add token budget to prevent empty responses from thinking models.
+          maxOutputTokens: 2048,
+          thinkingConfig: { thinkingBudget: 0 },
       },
    });
 
@@ -119,68 +124,6 @@ const generateTweetsWithGroq = async (summary: string, apiKey: string, model: Gr
     }
     return [];
 };
-
-// --- Ollama Implementations ---
-const ollamaChatCompletion = async (model: string, messages: any[], useJson: boolean = false): Promise<string> => {
-    const body: any = {
-        model,
-        messages,
-        stream: false,
-    };
-    if (useJson) {
-        body.format = "json";
-    }
-
-    try {
-        const response = await fetch(OLLAMA_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Status: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        return data.message.content;
-    } catch (e) {
-        if (e instanceof TypeError) { // Catches network errors
-             throw new Error(`Could not connect to Ollama server. Please ensure Ollama is running at ${OLLAMA_API_URL}`);
-        }
-        throw e; // re-throw other errors
-    }
-};
-
-const summarizeContentWithOllama = async (content: string, model: string): Promise<string> => {
-    const languageInstruction = 'The summary MUST be written in European Portuguese. Use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.'
-    const prompt = `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`;
-    const messages = [{ role: "user", content: prompt }];
-    return await ollamaChatCompletion(model, messages);
-};
-
-const generateTweetsWithOllama = async (summary: string, model: string): Promise<string[]> => {
-    const prompt = getTweetGenerationPromptForGroq(summary);
-    const messages = [
-        { role: "system", content: TWEET_SYSTEM_PROMPT },
-        { role: "user", content: prompt }
-    ];
-    
-    const jsonString = await ollamaChatCompletion(model, messages, true);
-    // Some models might wrap the JSON in ```json ... ```, so we clean it.
-    const cleanedJsonString = jsonString.replace(/```json\n?|```/g, '').trim();
-    const result = JSON.parse(cleanedJsonString);
-
-    if (result.tweets && Array.isArray(result.tweets)) {
-        return result.tweets;
-    }
-    return [];
-};
-
 
 // --- Exported Wrappers ---
 interface ApiConfig {

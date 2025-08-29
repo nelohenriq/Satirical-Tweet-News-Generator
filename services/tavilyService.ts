@@ -18,7 +18,11 @@ export const search = async (query: string, apiKey: string): Promise<string> => 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})); // Catch if error response is not valid JSON
       const errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
-      throw new Error(`Tavily API error: ${errorMessage}`);
+      // Create a new error object and attach the status code
+      const error = new Error(`Tavily API error: ${errorMessage}`);
+      // @ts-ignore - attaching a custom property
+      error.status = response.status;
+      throw error;
     }
 
     const data = await response.json();
@@ -36,7 +40,7 @@ export const search = async (query: string, apiKey: string): Promise<string> => 
   } catch (error) {
     console.error('Error calling Tavily API:', error);
     if (error instanceof Error) {
-        throw new Error(`Failed to get context from Tavily: ${error.message}`);
+        throw error; // Re-throw the original error with status code
     }
     throw new Error('An unknown error occurred while contacting the Tavily service.');
   }

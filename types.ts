@@ -10,10 +10,17 @@ export interface RSSItem {
   pubDate?: Date;
 }
 
+export interface TweetData {
+  text: string;
+  imageUrl?: string | null;
+  isGeneratingImage?: boolean;
+  imageError?: string | null;
+}
+
 export interface ProcessedArticle {
   id: string;
   title: string;
   link: string;
   summary: string;
-  tweets: string[];
+  tweets: TweetData[];
 }
