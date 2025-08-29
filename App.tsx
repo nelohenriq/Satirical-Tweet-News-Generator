@@ -10,7 +10,7 @@ import { fetchAndParseFeed } from './services/rssService';
 import { scrapeUrlContent } from './services/scraperService';
 import { search as serperSearch } from './services/serperService';
 import { summarizeContent, generateTweets } from './services/geminiService';
-// import { generateImageWithOllama } from './services/ollamaService';
+import { getOllamaModels } from './services/ollamaService';
 import { getProcessedLinks, addProcessedLink, clearProcessedLinks } from './services/storageService';
 import { GROQ_MODELS, FUNNY_LOADING_MESSAGES } from './constants';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -26,7 +26,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [aiProvider, setAiProvider] = useState<AIProvider>('gemini');
   const [groqModel, setGroqModel] = useState<GroqModelId>(GROQ_MODELS[0].id);
-  const [ollamaModel, setOllamaModel] = useState<string>('llama3'); // Default local model
+  const [ollamaModel, setOllamaModel] = useState<string>('llama3');
+  const [availableOllamaModels, setAvailableOllamaModels] = useState<string[]>([]);
+  const [isFetchingOllamaModels, setIsFetchingOllamaModels] = useState<boolean>(false);
   const [maxAgeDays, setMaxAgeDays] = useState<number>(2);
   const [theme, setTheme] = useState<Theme>(() => {
     try {
@@ -112,46 +114,35 @@ const App: React.FC = () => {
     alert('Processing history has been cleared.');
   }, []);
 
-  /*
-  const handleGenerateImage = useCallback(async (articleId: string, tweetIndex: number) => {
-    if (aiProvider !== 'ollama') return;
+  const fetchOllamaModels = useCallback(async () => {
+      setIsFetchingOllamaModels(true);
+      setError(null);
+      try {
+          const models = await getOllamaModels();
+          setAvailableOllamaModels(models);
+          if (models.length > 0) {
+              setOllamaModel(currentModel => 
+                  models.includes(currentModel) ? currentModel : models[0]
+              );
+          } else {
+              setOllamaModel('');
+              setError("No Ollama models found. Please pull a model (e.g., `ollama run llama3`).");
+          }
+      } catch (err) {
+          setError(err instanceof Error ? err.message : 'An unknown error occurred while fetching Ollama models.');
+          setAvailableOllamaModels([]);
+          setOllamaModel('');
+      } finally {
+          setIsFetchingOllamaModels(false);
+      }
+  }, []);
 
-    setProcessedArticles(prev => prev.map(article => {
-        if (article.id !== articleId) return article;
-        const newTweets = [...article.tweets];
-        newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: true, imageError: null };
-        return { ...article, tweets: newTweets };
-    }));
+  useEffect(() => {
+      if (aiProvider === 'ollama') {
+          fetchOllamaModels();
+      }
+  }, [aiProvider, fetchOllamaModels]);
 
-    try {
-        const article = processedArticles.find(a => a.id === articleId);
-        const tweet = article?.tweets[tweetIndex];
-        if (!tweet || !ollamaModel) throw new Error("Tweet or Ollama model not found.");
-
-        const imagePrompt = `A satirical, political cartoon style image representing the following concept: "${tweet.text}"`;
-        
-        // Using 'llava-llama3' as requested by the user.
-        // NOTE: 'llava-llama3' is not a standard image generation model. This will only work with a custom Ollama setup.
-        const imageUrl = await generateImageWithOllama(imagePrompt, 'llava-llama3'); 
-
-        setProcessedArticles(prev => prev.map(article => {
-            if (article.id !== articleId) return article;
-            const newTweets = [...article.tweets];
-            newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: false, imageUrl };
-            return { ...article, tweets: newTweets };
-        }));
-
-    } catch (err) {
-         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during image generation.';
-         setProcessedArticles(prev => prev.map(article => {
-            if (article.id !== articleId) return article;
-            const newTweets = [...article.tweets];
-            newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: false, imageError: errorMessage };
-            return { ...article, tweets: newTweets };
-        }));
-    }
-  }, [aiProvider, ollamaModel, processedArticles]);
-  */
 
   const validateApiKeys = useCallback(() => {
     if (!serperApiKey) {
@@ -317,6 +308,9 @@ const App: React.FC = () => {
               setGroqModel={setGroqModel}
               ollamaModel={ollamaModel}
               setOllamaModel={setOllamaModel}
+              availableOllamaModels={availableOllamaModels}
+              isFetchingOllamaModels={isFetchingOllamaModels}
+              onRefreshOllamaModels={fetchOllamaModels}
               maxAgeDays={maxAgeDays}
               setMaxAgeDays={setMaxAgeDays}
             />

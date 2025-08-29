@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { EXAMPLE_FEEDS, GROQ_MODELS } from '../constants';
 import { AIProvider, GroqModelId } from '../types';
 import { Tooltip } from './Tooltip';
+import { RefreshIcon } from './icons';
 
 type FormTab = 'rss' | 'url';
 
@@ -20,6 +21,9 @@ interface FeedFormProps {
   setGroqModel: (model: GroqModelId) => void;
   ollamaModel: string;
   setOllamaModel: (model: string) => void;
+  availableOllamaModels: string[];
+  isFetchingOllamaModels: boolean;
+  onRefreshOllamaModels: () => void;
   maxAgeDays: number;
   setMaxAgeDays: (days: number) => void;
 }
@@ -39,6 +43,9 @@ export const FeedForm: React.FC<FeedFormProps> = ({
   setGroqModel,
   ollamaModel,
   setOllamaModel,
+  availableOllamaModels,
+  isFetchingOllamaModels,
+  onRefreshOllamaModels,
   maxAgeDays,
   setMaxAgeDays
 }) => {
@@ -132,21 +139,38 @@ export const FeedForm: React.FC<FeedFormProps> = ({
 
                 {/* Ollama Model */}
                 {aiProvider === 'ollama' && (
-                    <div className="space-y-2">
-                        <label htmlFor="ollama-model" className="block text-sm font-medium text-light-text-secondary dark:text-text-secondary mb-2">
-                            Ollama Model Name
-                        </label>
-                        <input
-                            id="ollama-model"
-                            type="text"
-                            value={ollamaModel}
-                            onChange={(e) => setOllamaModel(e.target.value)}
-                            placeholder="e.g., llama3, gemma"
-                            required
-                            className="w-full bg-light-surface dark:bg-gray-light border border-light-border dark:border-gray-500 text-light-text-primary dark:text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
-                            disabled={isLoading}
-                        />
+                  <div className="space-y-2">
+                    <label htmlFor="ollama-model" className="block text-sm font-medium text-light-text-secondary dark:text-text-secondary mb-2">
+                      Ollama Model
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        id="ollama-model"
+                        value={ollamaModel}
+                        onChange={(e) => setOllamaModel(e.target.value)}
+                        required
+                        className="w-full bg-light-surface dark:bg-gray-light border border-light-border dark:border-gray-500 text-light-text-primary dark:text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                        disabled={isLoading || isFetchingOllamaModels || availableOllamaModels.length === 0}
+                      >
+                        {isFetchingOllamaModels && <option>Fetching models...</option>}
+                        {!isFetchingOllamaModels && availableOllamaModels.length === 0 && <option>No models found</option>}
+                        {availableOllamaModels.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                      <Tooltip text="Refresh the list of local Ollama models.">
+                        <button
+                          type="button"
+                          onClick={onRefreshOllamaModels}
+                          disabled={isLoading || isFetchingOllamaModels}
+                          className="p-2 rounded-md hover:bg-light-border dark:hover:bg-gray-500 transition-colors disabled:opacity-50"
+                          aria-label="Refresh Ollama models"
+                        >
+                          <RefreshIcon className={`h-5 w-5 text-light-text-secondary dark:text-text-secondary ${isFetchingOllamaModels ? 'animate-spin' : ''}`} />
+                        </button>
+                      </Tooltip>
                     </div>
+                  </div>
                 )}
             </div>
 

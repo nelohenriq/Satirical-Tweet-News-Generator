@@ -2,6 +2,39 @@ import { TWEET_SYSTEM_PROMPT, getTweetGenerationPromptForGroq } from '../constan
 
 const OLLAMA_API_URL = 'http://localhost:11434/api';
 
+// --- Model Discovery ---
+
+interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+}
+
+/**
+ * Fetches the list of available models from the local Ollama server.
+ * @returns A promise that resolves to an array of model name strings.
+ */
+export const getOllamaModels = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(`${OLLAMA_API_URL}/tags`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Status: ${response.status} - ${errorText}`);
+    }
+    const data: { models: OllamaModel[] } = await response.json();
+    if (!data.models || data.models.length === 0) {
+      return [];
+    }
+    return data.models.map(model => model.name);
+  } catch (e) {
+    if (e instanceof TypeError) { // Catches network errors
+      throw new Error(`Could not connect to Ollama server to fetch models. Please ensure Ollama is running.`);
+    }
+    throw e; // re-throw other errors
+  }
+};
+
+
 // --- Text Generation ---
 
 const ollamaChatCompletion = async (model: string, messages: any[], useJson: boolean = false): Promise<string> => {
