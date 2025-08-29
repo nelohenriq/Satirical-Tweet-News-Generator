@@ -50,13 +50,14 @@ export const FeedForm: React.FC<FeedFormProps> = ({
 
   const handleExampleClick = (exampleUrl: string) => {
     setUrls(exampleUrl);
-    onProcessFeed([exampleUrl]);
   };
   
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-8">
+      {/* Configuration Section */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-text-primary border-b border-gray-light pb-3">Configuration</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label htmlFor="ai-provider" className="block text-sm font-medium text-text-secondary mb-2">
               AI Provider
@@ -76,7 +77,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({
 
           <div>
             <label htmlFor="max-age-days" className="block text-sm font-medium text-text-secondary mb-2">
-              Process Articles Newer Than (days)
+              Article Max Age (Days)
             </label>
             <input
               id="max-age-days"
@@ -89,25 +90,6 @@ export const FeedForm: React.FC<FeedFormProps> = ({
               title="Only process articles published within the last X days. Feeds that don't provide a date are always included."
             />
           </div>
-
-          {aiProvider === 'groq' && (
-            <div>
-              <label htmlFor="groq-model" className="block text-sm font-medium text-text-secondary mb-2">
-                Groq Model
-              </label>
-              <select
-                id="groq-model"
-                value={groqModel}
-                onChange={(e) => setGroqModel(e.target.value as GroqModelId)}
-                className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
-                disabled={isLoading}
-              >
-                {GROQ_MODELS.map(model => (
-                  <option key={model.id} value={model.id}>{model.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div>
             <label htmlFor="tavily-api-key" className="block text-sm font-medium text-text-secondary mb-2">
@@ -126,21 +108,39 @@ export const FeedForm: React.FC<FeedFormProps> = ({
           </div>
 
           {aiProvider === 'groq' && (
-             <div>
-              <label htmlFor="groq-api-key" className="block text-sm font-medium text-text-secondary mb-2">
-                Groq API Key
-              </label>
-              <input
-                id="groq-api-key"
-                type="password"
-                value={groqApiKey}
-                onChange={(e) => setGroqApiKey(e.target.value)}
-                placeholder="Enter your Groq API Key"
-                required
-                className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
-                disabled={isLoading}
-              />
-            </div>
+            <>
+              <div>
+                <label htmlFor="groq-model" className="block text-sm font-medium text-text-secondary mb-2">
+                  Groq Model
+                </label>
+                <select
+                  id="groq-model"
+                  value={groqModel}
+                  onChange={(e) => setGroqModel(e.target.value as GroqModelId)}
+                  className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                  disabled={isLoading}
+                >
+                  {GROQ_MODELS.map(model => (
+                    <option key={model.id} value={model.id}>{model.name}</option>
+                  ))}
+                </select>
+              </div>
+               <div>
+                <label htmlFor="groq-api-key" className="block text-sm font-medium text-text-secondary mb-2">
+                  Groq API Key
+                </label>
+                <input
+                  id="groq-api-key"
+                  type="password"
+                  value={groqApiKey}
+                  onChange={(e) => setGroqApiKey(e.target.value)}
+                  placeholder="Enter your Groq API Key"
+                  required
+                  className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+                  disabled={isLoading}
+                />
+              </div>
+            </>
           )}
 
           {aiProvider === 'ollama' && (
@@ -161,10 +161,14 @@ export const FeedForm: React.FC<FeedFormProps> = ({
             </div>
           )}
         </div>
+      </section>
 
+      {/* Generation Section */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <h2 className="text-xl font-bold text-text-primary border-b border-gray-light pb-3">RSS Feeds</h2>
         <div>
            <label htmlFor="rss-urls" className="block text-sm font-medium text-text-secondary mb-2">
-            Enter RSS Feed URLs (one per line)
+            Enter RSS Feed URLs (one per line) or use an example below.
           </label>
           <textarea
             id="rss-urls"
@@ -177,7 +181,20 @@ export const FeedForm: React.FC<FeedFormProps> = ({
             disabled={isLoading}
           />
         </div>
-         <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-wrap gap-2">
+          {EXAMPLE_FEEDS.map((feed) => (
+            <button
+              key={feed.name}
+              type="button"
+              onClick={() => handleExampleClick(feed.url)}
+              disabled={isLoading}
+              className="text-sm bg-gray-light hover:bg-gray-500 border border-gray-500 text-brand-secondary font-semibold py-1 px-3 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {feed.name}
+            </button>
+          ))}
+        </div>
+         <div className="flex items-center justify-between pt-4 border-t border-gray-light">
             <button
                 type="button"
                 onClick={onClearHistory}
@@ -189,28 +206,13 @@ export const FeedForm: React.FC<FeedFormProps> = ({
             </button>
             <button
               type="submit"
-              className="bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg hover:shadow-brand-primary/40"
               disabled={isLoading}
             >
-              Generate
+              Generate Tweets
             </button>
           </div>
       </form>
-      <div>
-        <p className="text-sm text-text-secondary mb-2">Or try an example:</p>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLE_FEEDS.map((feed) => (
-            <button
-              key={feed.name}
-              onClick={() => handleExampleClick(feed.url)}
-              disabled={isLoading}
-              className="text-sm bg-gray-light hover:bg-gray-500 border border-gray-500 text-brand-secondary font-semibold py-1 px-3 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {feed.name}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

@@ -10,7 +10,7 @@ interface ArticleCardProps {
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
   return (
-    <article className="bg-gray-medium rounded-lg shadow-lg p-6 border border-gray-light transition hover:border-brand-primary">
+    <article className="bg-gray-medium rounded-lg shadow-xl p-6 border border-gray-light transition-all duration-300 ease-in-out hover:border-brand-primary hover:shadow-2xl hover:-translate-y-1">
       <header className="mb-4">
         <h3 className="text-xl font-bold text-text-primary mb-2">{article.title}</h3>
         {article.link && (

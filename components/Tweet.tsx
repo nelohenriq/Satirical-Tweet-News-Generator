@@ -16,7 +16,7 @@ export const Tweet: React.FC<TweetProps> = ({ text }) => {
   };
 
   return (
-    <div className="flex items-start space-x-3 bg-gray-light p-3 rounded-lg border border-gray-500/50">
+    <div className="flex items-start space-x-3 bg-gray-light/70 p-3 rounded-lg border border-gray-500/50">
       <XIcon className="h-6 w-6 text-text-primary flex-shrink-0 mt-0.5" />
       <div className="flex-grow">
         <p className="text-text-primary text-sm">{text}</p>

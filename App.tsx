@@ -166,18 +166,18 @@ const App: React.FC = () => {
   }, [tavilyApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays]);
 
   return (
-    <div className="min-h-screen bg-gray-dark font-sans">
-      <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-        <header className="flex items-center justify-center space-x-4 mb-8">
-          <LogoIcon className="h-12 w-12 text-brand-primary" />
+    <div className="min-h-screen">
+      <div className="container mx-auto p-4 md:p-8 max-w-5xl">
+        <header className="flex items-center justify-center space-x-4 mb-10">
+          <LogoIcon className="h-14 w-14 text-brand-primary" />
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">Satirical News Tweet Generator</h1>
-            <p className="text-text-secondary text-md">AI-powered satire for your news feed.</p>
+            <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-brand-primary tracking-tight">Satirical News Tweet Generator</h1>
+            <p className="text-text-secondary text-lg mt-1">AI-powered satire for your news feed.</p>
           </div>
         </header>
 
         <main>
-          <div className="bg-gray-medium rounded-lg p-6 shadow-lg mb-8 border border-gray-light">
+          <div className="bg-gray-medium/30 rounded-lg p-6 shadow-lg mb-8 border border-gray-light">
             <FeedForm 
               onProcessFeed={handleProcessFeed} 
               isLoading={isLoading}
@@ -218,7 +218,9 @@ const App: React.FC = () => {
           )}
 
           {!isLoading && !error && processedArticles.length === 0 && (
-            <div className="text-center py-10 px-6 bg-gray-medium rounded-lg border-2 border-dashed border-gray-light">
+            <div className="text-center py-16 px-6 bg-gray-medium/50 rounded-lg border-2 border-dashed border-gray-light">
+                <div className="text-6xl mb-4" aria-hidden="true">🗞️</div>
+                <h3 className="text-xl font-bold text-text-primary">Ready to Generate Satire</h3>
                 <p className="text-text-secondary">Results will appear here once an RSS feed is processed.</p>
                 <p className="text-sm text-gray-500 mt-2">Enter your API Keys, then try an example above!</p>
             </div>

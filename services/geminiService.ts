@@ -49,6 +49,9 @@ const generateTweetsWithGemini = async (summary: string): Promise<string[]> => {
               },
               required: ["tweets"]
           },
+          // FIX: Add token budget to prevent empty responses from thinking models.
+          maxOutputTokens: 2048,
+          thinkingConfig: { thinkingBudget: 1024 },
       },
    });
 
