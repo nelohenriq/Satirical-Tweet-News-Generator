@@ -64,6 +64,25 @@
         background-image: radial-gradient(circle at 25% 25%, #15202B 0%, #0c121a 40%);
         color: #E7E9EA; /* text-primary */
       }
+      
+      /* Autofill styles override to fix white background in dark mode */
+      :root {
+        --input-bg: #ffffff;
+        --input-text: #1e293b;
+      }
+      html.dark {
+        --input-bg: #22303C; /* Corresponds to dark:bg-gray-light */
+        --input-text: #E7E9EA; /* Corresponds to dark:text-text-primary */
+      }
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+        transition: background-color 5000s ease-in-out 0s;
+        -webkit-text-fill-color: var(--input-text) !important;
+        -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+        caret-color: var(--input-text) !important;
+      }
     </style>
   <script type="importmap">
 {

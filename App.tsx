@@ -7,6 +7,7 @@ import { Spinner } from './components/Spinner';
 import { LogoIcon } from './components/icons';
 import { ProcessedArticle, AIProvider, GroqModelId, TweetData } from './types';
 import { fetchAndParseFeed } from './services/rssService';
+import { scrapeUrlContent } from './services/scraperService';
 import { search as serperSearch } from './services/serperService';
 import { summarizeContent, generateTweets } from './services/geminiService';
 // import { generateImageWithOllama } from './services/ollamaService';
@@ -152,19 +153,64 @@ const App: React.FC = () => {
   }, [aiProvider, ollamaModel, processedArticles]);
   */
 
-  const handleProcessFeed = useCallback(async (urls: string[]) => {
+  const validateApiKeys = useCallback(() => {
     if (!serperApiKey) {
       setError('Serper API Key is required to process feeds.');
-      return;
+      return false;
     }
     if (aiProvider === 'groq' && !groqApiKey) {
       setError('Groq API Key is required when using the Groq provider.');
-      return;
+      return false;
     }
     if (aiProvider === 'ollama' && !ollamaModel) {
       setError('Ollama model name is required when using the Ollama provider.');
-      return;
+      return false;
     }
+    return true;
+  }, [serperApiKey, aiProvider, groqApiKey, ollamaModel]);
+
+  const handleProcessUrl = useCallback(async (url: string) => {
+    if (!validateApiKeys()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setProcessedArticles([]);
+
+    try {
+      const apiConfig = { groqApiKey, groqModel, ollamaModel };
+      const randomLoadingMessage = FUNNY_LOADING_MESSAGES[Math.floor(Math.random() * FUNNY_LOADING_MESSAGES.length)];
+      setLoadingMessage(randomLoadingMessage);
+
+      const { title, content: articleContent } = await scrapeUrlContent(url);
+      
+      const extraContext = await serperSearch(title, serperApiKey);
+      const fullContent = `${title}\n\n${articleContent}\n\nAdditional Context from Search:\n${extraContext}`;
+      
+      const summary = await summarizeContent(fullContent, aiProvider, apiConfig);
+      const tweetTexts = await generateTweets(summary, aiProvider, apiConfig);
+      const tweets: TweetData[] = tweetTexts.map(text => ({ text }));
+
+      const newArticle: ProcessedArticle = {
+        id: url,
+        title: title,
+        link: url,
+        summary,
+        tweets,
+      };
+
+      setProcessedArticles([newArticle]);
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
+  }, [serperApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, validateApiKeys]);
+
+  const handleProcessFeed = useCallback(async (urls: string[]) => {
+    if (!validateApiKeys()) return;
 
     setIsLoading(true);
     setError(null);
@@ -238,7 +284,7 @@ const App: React.FC = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [serperApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays]);
+  }, [serperApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays, validateApiKeys]);
 
   return (
     <div className="min-h-screen">
@@ -258,6 +304,7 @@ const App: React.FC = () => {
           <div className="bg-light-surface dark:bg-gray-medium/30 rounded-lg p-6 shadow-lg mb-8 border border-light-border dark:border-gray-light">
             <FeedForm 
               onProcessFeed={handleProcessFeed} 
+              onProcessUrl={handleProcessUrl}
               isLoading={isLoading}
               serperApiKey={serperApiKey}
               setSerperApiKey={setSerperApiKey}
@@ -301,7 +348,7 @@ const App: React.FC = () => {
             <div className="text-center py-16 px-6 bg-light-surface dark:bg-gray-medium/50 rounded-lg border-2 border-dashed border-light-border dark:border-gray-light">
                 <div className="text-6xl mb-4" aria-hidden="true">🗞️</div>
                 <h3 className="text-xl font-bold text-light-text-primary dark:text-text-primary">The Anvil of Absurdity Awaits</h3>
-                <p className="text-light-text-secondary dark:text-text-secondary">Feed me an RSS link and I shall forge comedic gold.</p>
+                <p className="text-light-text-secondary dark:text-text-secondary">Feed me an RSS link or a single URL and I shall forge comedic gold.</p>
             </div>
           )}
         </main>

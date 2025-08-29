@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ProcessedArticle, AIProvider } from '../types';
 import { Tweet } from './Tweet';
@@ -12,7 +11,7 @@ interface ArticleCardProps {
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, /* onGenerateImage, */ aiProvider }) => {
   return (
-    <article className="bg-light-surface dark:bg-gray-medium rounded-lg shadow-lg p-6 border border-light-border dark:border-gray-light transition-all duration-300 ease-in-out hover:border-brand-primary hover:shadow-2xl hover:-translate-y-1">
+    <article className="bg-light-surface dark:bg-gray-medium rounded-lg shadow-lg p-6 border border-light-border dark:border-gray-light transition-all duration-300 ease-in-out hover:border-brand-primary hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01]">
       <header className="mb-4">
         <h3 className="text-xl font-bold text-light-text-primary dark:text-text-primary mb-2">{article.title}</h3>
         {article.link && (

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { XIcon, CopyIcon, CheckIcon } from './icons'; //, PhotoIcon } from './icons';
 import { TweetData, AIProvider } from '../types';
@@ -20,13 +19,26 @@ export const Tweet: React.FC<TweetProps> = ({ tweet, aiProvider, /* onGenerateIm
     });
   };
 
+  const handleShare = () => {
+    const tweetText = encodeURIComponent(tweet.text);
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <div className="bg-light-bg dark:bg-gray-light/70 p-3 rounded-lg border border-light-border dark:border-gray-500/50">
+    <div className="bg-light-bg dark:bg-gray-light/70 p-3 rounded-lg border border-light-border dark:border-gray-500/50 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-105 hover:bg-light-surface dark:hover:bg-gray-light">
       <div className="flex items-start space-x-3">
         <XIcon className="h-6 w-6 text-light-text-primary dark:text-text-primary flex-shrink-0 mt-0.5" />
         <div className="flex-grow">
           <p className="text-light-text-primary dark:text-text-primary text-sm">{tweet.text}</p>
         </div>
+        <button
+          onClick={handleShare}
+          className="p-1.5 rounded-full hover:bg-brand-primary/20 text-light-text-secondary dark:text-text-secondary hover:text-brand-primary transition-colors"
+          title="Share on X (formerly Twitter)"
+        >
+            <XIcon className="h-4 w-4" />
+        </button>
         <button
           onClick={handleCopy}
           className="p-1.5 rounded-full hover:bg-brand-primary/20 text-light-text-secondary dark:text-text-secondary hover:text-brand-primary transition-colors"
