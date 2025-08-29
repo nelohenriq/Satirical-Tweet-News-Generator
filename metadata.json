@@ -1,0 +1,5 @@
+{
+  "name": "Satirical News Tweet Generator",
+  "description": "An application that reads RSS feeds, enriches the content using web search, summarizes it, and generates satirical, comedy-writer-worthy tweets using AI.",
+  "requestFramePermissions": []
+}
