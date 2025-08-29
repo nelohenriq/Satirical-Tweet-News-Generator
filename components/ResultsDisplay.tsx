@@ -24,11 +24,23 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ articles, /* onG
     }).join('\n\n---\n\n');
 
     const fullContent = header + markdownContent;
+    
+    let filename = 'satirical-news-tweets.md';
+    if (articles.length === 1 && articles[0].title) {
+      // Sanitize the title to create a valid filename
+      const sanitizedTitle = articles[0].title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric chars except spaces and hyphens
+        .replace(/\s+/g, '-')       // Replace spaces with hyphens
+        .slice(0, 50);              // Truncate to a reasonable length
+      filename = `${sanitizedTitle || 'article'}.md`;
+    }
+
     const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'satirical-news-tweets.md';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
