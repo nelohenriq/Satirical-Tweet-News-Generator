@@ -103,6 +103,11 @@ const App: React.FC = () => {
           
           setLoadingMessage(`Step 2/5: Detecting language ${feedProgress}, Article ${articleProgress}...`);
           const language = await detectLanguage(item.content, aiProvider, apiKeys);
+          
+          if (aiProvider === 'groq') {
+            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           setLoadingMessage(`Step 3/5: Searching with Tavily ${feedProgress}, Article ${articleProgress}...`);
           const extraContext = await tavilySearch(item.title, tavilyApiKey);
@@ -110,6 +115,11 @@ const App: React.FC = () => {
 
           setLoadingMessage(`Step 4/5: Summarizing ${feedProgress}, Article ${articleProgress}...`);
           const summary = await summarizeContent(fullContent, language, aiProvider, apiKeys);
+          
+          if (aiProvider === 'groq') {
+            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           setLoadingMessage(`Step 5/5: Crafting tweets ${feedProgress}, Article ${articleProgress}...`);
           const tweets = await generateTweets(summary, language, aiProvider, apiKeys);
@@ -127,13 +137,6 @@ const App: React.FC = () => {
           // Add link to history to prevent re-processing
           if (item.link) {
             addProcessedLink(item.link);
-          }
-
-          // Add a delay when using Groq to avoid hitting rate limits between articles.
-          if (aiProvider === 'groq' && i < articlesToProcess.length - 1) {
-            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
-            // Wait for 2 seconds before processing the next article.
-            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
       }

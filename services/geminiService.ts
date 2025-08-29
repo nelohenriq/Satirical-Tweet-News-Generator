@@ -36,7 +36,7 @@ const summarizeContentWithGemini = async (content: string, language: string): Pr
 
   const response = await ai.models.generateContent({
     model: geminiTextModel,
-    contents: `Summarize the following text into a concise and informative paragraph. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`,
+    contents: `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`,
   });
   return response.text;
 };
@@ -116,7 +116,7 @@ const summarizeContentWithGroq = async (content: string, language: string, apiKe
     if (language.toLowerCase().includes('portuguese')) {
       languageInstruction = 'The summary MUST be written in European Portuguese. Use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.'
     }
-    const prompt = `Summarize the following text into a concise and informative paragraph. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`;
+    const prompt = `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`;
     const messages = [{ role: "user", content: prompt }];
     return await groqChatCompletion(apiKey, messages, model);
 };
