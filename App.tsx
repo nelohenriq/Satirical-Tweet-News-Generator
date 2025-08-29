@@ -147,6 +147,13 @@ const App: React.FC = () => {
         if (item.link) {
           addProcessedLink(item.link);
         }
+
+        // After processing an article, pause if using Gemini and it's not the last article.
+        // This helps to stay within the typical free-tier rate limits (e.g., 60 QPM).
+        if (aiProvider === 'gemini' && i < articlesToProcess.length - 1) {
+          setLoadingMessage(`Pausing for 2 seconds to respect Gemini API rate limits...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
 
     } catch (err) {
