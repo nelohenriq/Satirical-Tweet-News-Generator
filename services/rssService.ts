@@ -31,17 +31,31 @@ export const fetchAndParseFeed = async (url: string): Promise<RSSItem[]> => {
     return items.map(item => {
       const title = item.querySelector('title')?.textContent ?? '';
       const link = item.querySelector('link')?.getAttribute('href') ?? item.querySelector('link')?.textContent ?? '';
+      
       // RSS feeds have content in different tags, try to find the best one.
       const contentEncoded = item.querySelector('encoded')?.textContent ?? '';
       const description = item.querySelector('description')?.textContent ?? '';
       const content = item.querySelector('content')?.textContent ?? '';
-      
       const rawContent = contentEncoded || content || description;
+
+      // Try to find and parse the publication date from various common tags.
+      const dateString = item.querySelector('pubDate')?.textContent ?? 
+                         item.querySelector('published')?.textContent ?? 
+                         item.querySelector('updated')?.textContent ?? 
+                         '';
+      let pubDate: Date | undefined = undefined;
+      if (dateString) {
+          const parsedDate = new Date(dateString);
+          if (!isNaN(parsedDate.getTime())) { // Check if the date is valid
+              pubDate = parsedDate;
+          }
+      }
       
       return {
         title,
         link,
         content: stripHtml(rawContent).trim(),
+        pubDate,
       };
     });
   } catch (error) {

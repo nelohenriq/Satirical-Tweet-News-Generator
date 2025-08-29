@@ -17,6 +17,8 @@ interface FeedFormProps {
   setGroqModel: (model: GroqModelId) => void;
   ollamaModel: string;
   setOllamaModel: (model: string) => void;
+  maxAgeDays: number;
+  setMaxAgeDays: (days: number) => void;
 }
 
 export const FeedForm: React.FC<FeedFormProps> = ({ 
@@ -32,7 +34,9 @@ export const FeedForm: React.FC<FeedFormProps> = ({
   groqModel,
   setGroqModel,
   ollamaModel,
-  setOllamaModel
+  setOllamaModel,
+  maxAgeDays,
+  setMaxAgeDays
 }) => {
   const [urls, setUrls] = useState('');
 
@@ -68,6 +72,22 @@ export const FeedForm: React.FC<FeedFormProps> = ({
               <option value="groq">Groq</option>
               <option value="ollama">Ollama (Local)</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="max-age-days" className="block text-sm font-medium text-text-secondary mb-2">
+              Process Articles Newer Than (days)
+            </label>
+            <input
+              id="max-age-days"
+              type="number"
+              min="1"
+              value={maxAgeDays}
+              onChange={(e) => setMaxAgeDays(parseInt(e.target.value, 10) || 1)}
+              className="w-full bg-gray-light border border-gray-500 text-text-primary rounded-md px-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none transition"
+              disabled={isLoading}
+              title="Only process articles published within the last X days. Feeds that don't provide a date are always included."
+            />
           </div>
 
           {aiProvider === 'groq' && (

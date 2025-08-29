@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [aiProvider, setAiProvider] = useState<AIProvider>('gemini');
   const [groqModel, setGroqModel] = useState<GroqModelId>(GROQ_MODELS[0].id);
   const [ollamaModel, setOllamaModel] = useState<string>('llama3'); // Default local model
+  const [maxAgeDays, setMaxAgeDays] = useState<number>(2);
   
   // Initialize state from sessionStorage and keep it in sync.
   const [tavilyApiKey, setTavilyApiKey] = useState<string>(() => {
@@ -86,7 +87,6 @@ const App: React.FC = () => {
     setProcessedArticles([]); // Clear previous results for this run
 
     try {
-      const existingLinks = getProcessedLinks();
       const apiConfig = { groqApiKey, groqModel, ollamaModel };
 
       setLoadingMessage(`Step 1/4: Fetching and parsing ${urls.length} RSS feed(s)...`);
@@ -100,10 +100,21 @@ const App: React.FC = () => {
       );
       
       const allItems = feedResults.flat();
-      const articlesToProcess = allItems.filter(item => item.link && !existingLinks.has(item.link));
+      
+      // 1. Filter by date first
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
+      const recentItems = allItems.filter(item => {
+        // Keep items that don't have a publication date, or are newer than the cutoff.
+        return !item.pubDate || item.pubDate > cutoffDate;
+      });
+
+      // 2. Then, filter by processed links
+      const existingLinks = getProcessedLinks();
+      const articlesToProcess = recentItems.filter(item => item.link && !existingLinks.has(item.link));
 
       if (articlesToProcess.length === 0) {
-        setError("No new articles found in the provided feed(s). Clear history to re-process existing articles.");
+        setError("No new articles found matching the criteria (not already processed and newer than the specified date). Try adjusting the date filter or clearing history.");
         setIsLoading(false);
         return;
       }
@@ -145,7 +156,7 @@ const App: React.FC = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [tavilyApiKey, aiProvider, groqApiKey, groqModel, ollamaModel]);
+  }, [tavilyApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays]);
 
   return (
     <div className="min-h-screen bg-gray-dark font-sans">
@@ -174,6 +185,8 @@ const App: React.FC = () => {
               setGroqModel={setGroqModel}
               ollamaModel={ollamaModel}
               setOllamaModel={setOllamaModel}
+              maxAgeDays={maxAgeDays}
+              setMaxAgeDays={setMaxAgeDays}
             />
           </div>
 

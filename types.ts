@@ -7,6 +7,7 @@ export interface RSSItem {
   title: string;
   content: string;
   link: string;
+  pubDate?: Date;
 }
 
 export interface ProcessedArticle {
