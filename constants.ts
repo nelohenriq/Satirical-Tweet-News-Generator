@@ -12,6 +12,18 @@ export const GROQ_MODELS = [
   { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B' },
 ] as const;
 
+export const FUNNY_LOADING_MESSAGES = [
+  "Rummaging through the news dumpster for comedic gems...",
+  "Sharpening the satirical knives...",
+  "Consulting the ghost of Mark Twain...",
+  "Calibrating the irony-o-meter...",
+  "Waking up the AI comedian...",
+  "Teaching a robot to be cynical...",
+  "Finding the 'fun' in 'global thermonuclear war'...",
+  "Brewing a fresh pot of existential dread...",
+  "Polishing punchlines...",
+];
+
 export const TWEET_SYSTEM_PROMPT = `You are a world-class, professional comedy writer and satirist, operating as the head writer for a popular late-night political comedy show. Your voice is razor-sharp, relentlessly witty, and intellectual. You don't write simple jokes; you craft cutting commentary that exposes the absurdity in serious news, making your audience feel smart for getting the joke. Your entire purpose is to be clever, cynical, and hilarious.`;
 
 export const getTweetGenerationPrompt = (summary: string) => {

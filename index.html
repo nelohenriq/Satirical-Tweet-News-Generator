@@ -8,9 +8,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+      // Prevents flash of unstyled content (FOUC) for dark mode by applying the theme before the page renders.
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -19,26 +28,48 @@
             colors: {
               'brand-primary': '#1D9BF0',
               'brand-secondary': '#1DA1F2',
+              
+              // Dark Theme
               'gray-dark': '#15202B',
               'gray-medium': '#192734',
               'gray-light': '#22303C',
               'text-primary': '#E7E9EA',
               'text-secondary': '#8899A6',
+              'dark-bg': '#0c121a',
+
+              // Light Theme
+              'light-bg': '#f8fafc',
+              'light-surface': '#ffffff',
+              'light-border': '#e2e8f0',
+              'light-text-primary': '#1e293b',
+              'light-text-secondary': '#64748b',
             }
           }
         }
       }
     </script>
     <style>
+      /* Base styles for smooth theme transitions */
       body {
-        background-color: #0c121a; /* A slightly darker base than gray-dark */
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      /* Light mode defaults */
+      body {
+        background-color: #f8fafc; /* light-bg */
+        color: #1e293b; /* light-text-primary */
+      }
+      /* Dark mode overrides */
+      html.dark body {
+        background-color: #0c121a; /* dark-bg */
         background-image: radial-gradient(circle at 25% 25%, #15202B 0%, #0c121a 40%);
+        color: #E7E9EA; /* text-primary */
       }
     </style>
   <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.1.1",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1"
@@ -46,7 +77,7 @@
 }
 </script>
 </head>
-  <body class="font-sans text-text-primary">
+  <body class="font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

@@ -8,8 +8,8 @@ const stripHtml = (html: string): string => {
 };
 
 export const fetchAndParseFeed = async (url: string): Promise<RSSItem[]> => {
-  // Using a CORS proxy to fetch feeds from the client-side.
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  // Using a more reliable CORS proxy.
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   
   try {
     const response = await fetch(proxyUrl);

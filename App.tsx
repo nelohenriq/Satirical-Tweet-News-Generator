@@ -1,18 +1,22 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { FeedForm } from './components/FeedForm';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import { Spinner } from './components/Spinner';
 import { LogoIcon } from './components/icons';
-import { ProcessedArticle, AIProvider, GroqModelId } from './types';
+import { ProcessedArticle, AIProvider, GroqModelId, TweetData } from './types';
 import { fetchAndParseFeed } from './services/rssService';
-import { search as tavilySearch } from './services/tavilyService';
+import { search as serperSearch } from './services/serperService';
 import { summarizeContent, generateTweets } from './services/geminiService';
+import { generateImageWithOllama } from './services/ollamaService';
 import { getProcessedLinks, addProcessedLink, clearProcessedLinks } from './services/storageService';
-import { GROQ_MODELS } from './constants';
+import { GROQ_MODELS, FUNNY_LOADING_MESSAGES } from './constants';
+import { ThemeToggle } from './components/ThemeToggle';
 
-const TAVILY_API_KEY_SESSION_KEY = 'tavilyApiKey';
+const SERPER_API_KEY_SESSION_KEY = 'serperApiKey';
 const GROQ_API_KEY_SESSION_KEY = 'groqApiKey';
+type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
   const [processedArticles, setProcessedArticles] = useState<ProcessedArticle[]>([]);
@@ -23,13 +27,22 @@ const App: React.FC = () => {
   const [groqModel, setGroqModel] = useState<GroqModelId>(GROQ_MODELS[0].id);
   const [ollamaModel, setOllamaModel] = useState<string>('llama3'); // Default local model
   const [maxAgeDays, setMaxAgeDays] = useState<number>(2);
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const storedTheme = localStorage.getItem('theme');
+      if (storedTheme) return storedTheme as Theme;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch (e) {
+      return 'light';
+    }
+  });
   
   // Initialize state from sessionStorage and keep it in sync.
-  const [tavilyApiKey, setTavilyApiKey] = useState<string>(() => {
+  const [serperApiKey, setSerperApiKey] = useState<string>(() => {
     try {
-      return sessionStorage.getItem(TAVILY_API_KEY_SESSION_KEY) || '';
+      return sessionStorage.getItem(SERPER_API_KEY_SESSION_KEY) || '';
     } catch (error) {
-      console.error('Failed to read Tavily API key from sessionStorage:', error);
+      console.error('Failed to read Serper API key from sessionStorage:', error);
       return '';
     }
   });
@@ -43,15 +56,45 @@ const App: React.FC = () => {
     }
   });
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove(theme === 'light' ? 'dark' : 'light');
+    root.classList.add(theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.error("Could not save theme to localStorage", e);
+    }
+  }, [theme]);
+  
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
 
-  // Effect to save the API keys to sessionStorage whenever they change.
+    // Gracefully fallback for browsers that don't support the View Transitions API.
+    // @ts-ignore
+    if (!document.startViewTransition) {
+      setTheme(newTheme);
+      return;
+    }
+
+    // Use the View Transitions API for a smooth cross-fade effect.
+    // @ts-ignore
+    document.startViewTransition(() => {
+      // Force React to synchronously update the DOM. This is crucial for
+      // the View Transition API to correctly capture the "after" state.
+      flushSync(() => {
+        setTheme(newTheme);
+      });
+    });
+  };
+
   useEffect(() => {
     try {
-      sessionStorage.setItem(TAVILY_API_KEY_SESSION_KEY, tavilyApiKey);
+      sessionStorage.setItem(SERPER_API_KEY_SESSION_KEY, serperApiKey);
     } catch (error)      {
-      console.error('Failed to save Tavily API key to sessionStorage:', error);
+      console.error('Failed to save Serper API key to sessionStorage:', error);
     }
-  }, [tavilyApiKey]);
+  }, [serperApiKey]);
 
   useEffect(() => {
     try {
@@ -64,13 +107,52 @@ const App: React.FC = () => {
 
   const handleClearHistory = useCallback(() => {
     clearProcessedLinks();
-    setProcessedArticles([]); // Clear results from the screen
+    setProcessedArticles([]);
     alert('Processing history has been cleared.');
   }, []);
 
+  const handleGenerateImage = useCallback(async (articleId: string, tweetIndex: number) => {
+    if (aiProvider !== 'ollama') return;
+
+    setProcessedArticles(prev => prev.map(article => {
+        if (article.id !== articleId) return article;
+        const newTweets = [...article.tweets];
+        newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: true, imageError: null };
+        return { ...article, tweets: newTweets };
+    }));
+
+    try {
+        const article = processedArticles.find(a => a.id === articleId);
+        const tweet = article?.tweets[tweetIndex];
+        if (!tweet || !ollamaModel) throw new Error("Tweet or Ollama model not found.");
+
+        const imagePrompt = `A satirical, political cartoon style image representing the following concept: "${tweet.text}"`;
+        
+        // Using 'llava-llama3' as requested by the user.
+        // NOTE: 'llava-llama3' is not a standard image generation model. This will only work with a custom Ollama setup.
+        const imageUrl = await generateImageWithOllama(imagePrompt, 'llava-llama3'); 
+
+        setProcessedArticles(prev => prev.map(article => {
+            if (article.id !== articleId) return article;
+            const newTweets = [...article.tweets];
+            newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: false, imageUrl };
+            return { ...article, tweets: newTweets };
+        }));
+
+    } catch (err) {
+         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during image generation.';
+         setProcessedArticles(prev => prev.map(article => {
+            if (article.id !== articleId) return article;
+            const newTweets = [...article.tweets];
+            newTweets[tweetIndex] = { ...newTweets[tweetIndex], isGeneratingImage: false, imageError: errorMessage };
+            return { ...article, tweets: newTweets };
+        }));
+    }
+  }, [aiProvider, ollamaModel, processedArticles]);
+
   const handleProcessFeed = useCallback(async (urls: string[]) => {
-    if (!tavilyApiKey) {
-      setError('Tavily API Key is required to process feeds.');
+    if (!serperApiKey) {
+      setError('Serper API Key is required to process feeds.');
       return;
     }
     if (aiProvider === 'groq' && !groqApiKey) {
@@ -84,54 +166,47 @@ const App: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
-    setProcessedArticles([]); // Clear previous results for this run
+    setProcessedArticles([]);
 
     try {
       const apiConfig = { groqApiKey, groqModel, ollamaModel };
+      
+      const randomLoadingMessage = FUNNY_LOADING_MESSAGES[Math.floor(Math.random() * FUNNY_LOADING_MESSAGES.length)];
+      setLoadingMessage(randomLoadingMessage);
 
-      setLoadingMessage(`Step 1/4: Fetching and parsing ${urls.length} RSS feed(s)...`);
-      // Fetch all feeds in parallel for efficiency.
       const feedResults = await Promise.all(
         urls.map(url => fetchAndParseFeed(url).catch(e => {
             console.error(`Failed to fetch or parse feed ${url}:`, e);
-            // Return an empty array for a failed feed so Promise.all doesn't reject the whole batch.
             return []; 
         }))
       );
       
       const allItems = feedResults.flat();
       
-      // 1. Filter by date first
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
-      const recentItems = allItems.filter(item => {
-        // Keep items that don't have a publication date, or are newer than the cutoff.
-        return !item.pubDate || item.pubDate > cutoffDate;
-      });
+      const recentItems = allItems.filter(item => !item.pubDate || item.pubDate > cutoffDate);
 
-      // 2. Then, filter by processed links
       const existingLinks = getProcessedLinks();
       const articlesToProcess = recentItems.filter(item => item.link && !existingLinks.has(item.link));
 
       if (articlesToProcess.length === 0) {
-        setError("No new articles found matching the criteria (not already processed and newer than the specified date). Try adjusting the date filter or clearing history.");
+        setError("No new articles found matching the criteria. Try adjusting the date filter or clearing history.");
         setIsLoading(false);
         return;
       }
       
       for (let i = 0; i < articlesToProcess.length; i++) {
         const item = articlesToProcess[i];
-        const articleProgress = `${i + 1}/${articlesToProcess.length}`;
         
-        setLoadingMessage(`Step 2/4: Searching with Tavily (Article ${articleProgress})...`);
-        const extraContext = await tavilySearch(item.title, tavilyApiKey);
-        const fullContent = `${item.title}\n\n${item.content}\n\nAdditional Context from Tavily:\n${extraContext}`;
+        const extraContext = await serperSearch(item.title, serperApiKey);
 
-        setLoadingMessage(`Step 3/4: Summarizing (Article ${articleProgress})...`);
+        const fullContent = `${item.title}\n\n${item.content}\n\nAdditional Context from Search:\n${extraContext}`;
+
         const summary = await summarizeContent(fullContent, aiProvider, apiConfig);
         
-        setLoadingMessage(`Step 4/4: Crafting tweets (Article ${articleProgress})...`);
-        const tweets = await generateTweets(summary, aiProvider, apiConfig);
+        const tweetTexts = await generateTweets(summary, aiProvider, apiConfig);
+        const tweets: TweetData[] = tweetTexts.map(text => ({ text }));
 
         const newArticle: ProcessedArticle = {
           id: item.link || `${item.title}-${Date.now()}-${i}`,
@@ -141,18 +216,16 @@ const App: React.FC = () => {
           tweets,
         };
         
-        // Stream result to the UI in real-time
         setProcessedArticles(prevArticles => [...prevArticles, newArticle]);
-        // Add link to history to prevent re-processing
         if (item.link) {
           addProcessedLink(item.link);
         }
 
-        // After processing an article, pause if using Gemini and it's not the last article.
-        // This helps to stay within the typical free-tier rate limits (e.g., 60 QPM).
         if (aiProvider === 'gemini' && i < articlesToProcess.length - 1) {
-          setLoadingMessage(`Pausing for 2 seconds to respect Gemini API rate limits...`);
+          setLoadingMessage(`Pausing to respect API rate limits...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
+          const nextRandomLoadingMessage = FUNNY_LOADING_MESSAGES[Math.floor(Math.random() * FUNNY_LOADING_MESSAGES.length)];
+          setLoadingMessage(nextRandomLoadingMessage);
         }
       }
 
@@ -163,26 +236,29 @@ const App: React.FC = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [tavilyApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays]);
+  }, [serperApiKey, aiProvider, groqApiKey, groqModel, ollamaModel, maxAgeDays]);
 
   return (
     <div className="min-h-screen">
       <div className="container mx-auto p-4 md:p-8 max-w-5xl">
-        <header className="flex items-center justify-center space-x-4 mb-10">
-          <LogoIcon className="h-14 w-14 text-brand-primary" />
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-brand-primary tracking-tight">Satirical News Tweet Generator</h1>
-            <p className="text-text-secondary text-lg mt-1">AI-powered satire for your news feed.</p>
+        <header className="flex items-center justify-between space-x-4 mb-10">
+          <div className="flex items-center space-x-4">
+            <LogoIcon className="h-14 w-14 text-brand-primary" />
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-brand-primary tracking-tight">Satirical News Tweet Generator</h1>
+              <p className="text-light-text-secondary dark:text-text-secondary text-lg mt-1">Turning today's headlines into tomorrow's punchlines.</p>
+            </div>
           </div>
+          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
         </header>
 
         <main>
-          <div className="bg-gray-medium/30 rounded-lg p-6 shadow-lg mb-8 border border-gray-light">
+          <div className="bg-light-surface dark:bg-gray-medium/30 rounded-lg p-6 shadow-lg mb-8 border border-light-border dark:border-gray-light">
             <FeedForm 
               onProcessFeed={handleProcessFeed} 
               isLoading={isLoading}
-              tavilyApiKey={tavilyApiKey}
-              setTavilyApiKey={setTavilyApiKey}
+              serperApiKey={serperApiKey}
+              setSerperApiKey={setSerperApiKey}
               onClearHistory={handleClearHistory}
               aiProvider={aiProvider}
               setAiProvider={setAiProvider}
@@ -201,33 +277,34 @@ const App: React.FC = () => {
             <div className="flex flex-col items-center justify-center text-center p-8">
               <Spinner />
               <p className="mt-4 text-lg font-semibold text-brand-secondary">{loadingMessage}</p>
-              <p className="text-text-secondary mt-2">Please wait, the AI is thinking witty thoughts...</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg relative" role="alert">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative" role="alert">
               <strong className="font-bold">Error: </strong>
               <span className="block sm:inline">{error}</span>
             </div>
           )}
           
-          {/* Display results as they come in, even during loading */}
           {processedArticles.length > 0 && (
-            <ResultsDisplay articles={processedArticles} />
+            <ResultsDisplay 
+              articles={processedArticles} 
+              onGenerateImage={handleGenerateImage}
+              aiProvider={aiProvider}
+            />
           )}
 
           {!isLoading && !error && processedArticles.length === 0 && (
-            <div className="text-center py-16 px-6 bg-gray-medium/50 rounded-lg border-2 border-dashed border-gray-light">
+            <div className="text-center py-16 px-6 bg-light-surface dark:bg-gray-medium/50 rounded-lg border-2 border-dashed border-light-border dark:border-gray-light">
                 <div className="text-6xl mb-4" aria-hidden="true">🗞️</div>
-                <h3 className="text-xl font-bold text-text-primary">Ready to Generate Satire</h3>
-                <p className="text-text-secondary">Results will appear here once an RSS feed is processed.</p>
-                <p className="text-sm text-gray-500 mt-2">Enter your API Keys, then try an example above!</p>
+                <h3 className="text-xl font-bold text-light-text-primary dark:text-text-primary">The Anvil of Absurdity Awaits</h3>
+                <p className="text-light-text-secondary dark:text-text-secondary">Feed me an RSS link and I shall forge comedic gold.</p>
             </div>
           )}
         </main>
-         <footer className="text-center mt-12 text-text-secondary text-sm">
-            <p>Powered by Gemini & Tavily AI. All content is AI-generated.</p>
+         <footer className="text-center mt-12 text-light-text-secondary dark:text-text-secondary text-sm">
+            <p>Crafted with 🤖 and a hint of existential dread. All content is AI-generated.</p>
         </footer>
       </div>
     </div>
