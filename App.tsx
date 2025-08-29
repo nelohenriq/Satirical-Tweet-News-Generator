@@ -128,6 +128,13 @@ const App: React.FC = () => {
           if (item.link) {
             addProcessedLink(item.link);
           }
+
+          // Add a delay when using Groq to avoid hitting rate limits between articles.
+          if (aiProvider === 'groq' && i < articlesToProcess.length - 1) {
+            setLoadingMessage(`Pausing for a moment to respect Groq's API rate limits...`);
+            // Wait for 2 seconds before processing the next article.
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         }
       }
 
