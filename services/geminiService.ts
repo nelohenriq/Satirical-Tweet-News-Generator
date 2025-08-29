@@ -5,11 +5,23 @@ import { AIProvider, GroqModelId } from "../types";
 import { summarizeContentWithOllama, generateTweetsWithOllama } from "./ollamaService";
 
 // --- Gemini Setup ---
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
-}
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
 const geminiTextModel = 'gemini-2.5-flash';
+
+// Initialize Gemini only when API key is available
+const initializeGemini = () => {
+  try {
+    if (!ai && (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY)) {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+      if (apiKey) {
+        ai = new GoogleGenAI({ apiKey });
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to initialize Gemini:', error);
+  }
+  return ai;
+};
 
 
 // --- Groq Setup ---
@@ -18,9 +30,14 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // --- Gemini Implementations ---
 const summarizeContentWithGemini = async (content: string): Promise<string> => {
+  const geminiInstance = initializeGemini();
+  if (!geminiInstance) {
+    throw new Error("Gemini API key not configured. Please set the GEMINI_API_KEY environment variable.");
+  }
+
   const languageInstruction = 'The summary MUST be written in European Portuguese. Use European Portuguese spelling, grammar, and vocabulary. Under no circumstances should you use Brazilian Portuguese variants.'
 
-  const response = await ai.models.generateContent({
+  const response = await geminiInstance.models.generateContent({
     model: geminiTextModel,
     contents: `Summarize the following text into a concise and informative paragraph, keeping the summary under 600 characters. ${languageInstruction} Focus on the key points and main narrative.\n\nText:\n"""${content}"""`,
     config: {
@@ -32,7 +49,12 @@ const summarizeContentWithGemini = async (content: string): Promise<string> => {
 };
 
 const generateTweetsWithGemini = async (summary: string): Promise<string[]> => {
-   const response = await ai.models.generateContent({
+   const geminiInstance = initializeGemini();
+   if (!geminiInstance) {
+     throw new Error("Gemini API key not configured. Please set the GEMINI_API_KEY environment variable.");
+   }
+
+   const response = await geminiInstance.models.generateContent({
       model: geminiTextModel,
       contents: getTweetGenerationPrompt(summary),
       config: {
